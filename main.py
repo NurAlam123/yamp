@@ -1,40 +1,14 @@
-from textual.app import App
-from textual.widgets import Label, Input
-from textual.containers import (
-    Vertical,
-    ScrollableContainer,
-    Container,
-    Horizontal,
-    Grid,
-)
+from textual.app import App, ComposeResult
+from textual.app import ComposeResult
 
-from yamp.utils import splash
+from yamp.layout import MainLayout
 
 
-class YAMP(App):
-    CSS_PATH = "./style.tcss"
+class YAMP(App[None]):
+    CSS_PATH = "./style/global.tcss"
 
-    def compose(self):
-        yield Label(splash())
-        yield Input(placeholder="Type song name...")
-        yield Horizontal(
-            Vertical(
-                Label("Songs", classes="sub-container-label", expand=True),
-                ScrollableContainer(Label("No songs to display!")),
-                classes="sub-container",
-            ),
-            Vertical(
-                Label("Queue", classes="sub-container-label", expand=True),
-                ScrollableContainer(Label("No songs to display!")),
-                classes="sub-container",
-            ),
-            Vertical(
-                Label("History", classes="sub-container-label", expand=True),
-                ScrollableContainer(Label("No songs to display!")),
-                classes="sub-container",
-            ),
-            id="interactive-container",
-        )
+    def compose(self) -> ComposeResult:
+        yield MainLayout()
 
 
 if __name__ == "__main__":

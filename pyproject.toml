@@ -9,6 +9,8 @@ readme = "README.md"
 python = "^3.12"
 textual = "^0.62.0"
 pyfiglet = "^1.0.2"
+requests = "^2.32.2"
+python-vlc = "^3.0.20123"
 
 
 [tool.poetry.group.dev.dependencies]

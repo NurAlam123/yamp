@@ -1,0 +1,39 @@
+#main-container {
+    padding: 1;
+}
+
+
+.sub-container {
+    border: round white;
+}
+
+.sub-container-label {
+    text-style: bold;
+    text-align: center;
+    background: #5f00af;
+}
+
+#song-container {
+    padding: 1;
+}
+
+ScrollableContainer {
+    height: 100%;
+}
+
+RadioSet {
+    width: 100%;
+    margin-bottom: 4;
+}
+
+RadioButton {
+    margin-bottom: 1;
+}
+
+.hide {
+    display: none;
+}
+
+.show {
+    display: block;
+}
