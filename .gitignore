@@ -1,0 +1,19 @@
+# virtual environment folders
+.venv
+.env
+env
+venv
+venv-*
+env-*
+*-venv
+*-env
+
+# Other files or folders to ignore
+*-ignore
+**/*-ignore
+*-ignore.*
+**/*-ignore.*
+
+# ignore __pycache__
+**/__pycache__
+__pycache__
