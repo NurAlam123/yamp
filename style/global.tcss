@@ -17,6 +17,15 @@
     padding: 1;
 }
 
+#now-playing {
+    width: 100%;
+    border: round orange;
+    box-sizing: border-box;
+    padding: 1;
+    margin-top: 1;
+    border-title-align: center;
+}
+
 ScrollableContainer {
     height: 100%;
 }

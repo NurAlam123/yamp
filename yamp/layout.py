@@ -1,12 +1,19 @@
 from textual import on
 from textual.app import ComposeResult
+from textual.binding import Binding
 from textual.widget import Widget
 from textual.reactive import reactive
-from textual.widgets import Input, Label, Static, RadioSet, RadioButton
+from textual.widgets import Input, Label, Static, RadioSet, RadioButton, Footer
 from textual.containers import Vertical, ScrollableContainer, Container, Horizontal
 
 from yamp.utils import splash
 from yamp.fetch import Fetch
+from yamp.player import Player
+
+
+# The media player
+# eventually vlc as the backend
+player = Player()
 
 
 class InputBox(Input):
@@ -26,7 +33,13 @@ class InputBox(Input):
             return
 
         event.control.clear()
-        song_data = Fetch().fetch_saavn(event.value)
+        # song_data = Fetch().fetch_saavn(event.value)
+        song_data = [
+            (
+                "Believer",
+                "https://aac.saavncdn.com/248/a6b1b78b396245f712abda8f1daefee0_96.mp4",
+            )
+        ]
         menu = self.app.query_one(SelectionMenu)
         menu.data = song_data
 
@@ -44,8 +57,13 @@ class SelectionMenu(Widget):
 
     @on(RadioSet.Changed)
     def radio_button_pressed(self, event: RadioSet.Changed) -> None:
-        value = event.index
-        print(value)
+        selected_index = event.index
+        selected_song = self.data[selected_index]
+        url = selected_song[1]
+        playing = player.play(url)
+        if not playing:
+            self.app.query_one(NowPlaying).song_info = selected_song[0]
+            # self.
 
     def watch_data(self) -> None:
         if not self.data:
@@ -63,15 +81,35 @@ class SelectionMenu(Widget):
         radio_menu.focus()
 
 
+class NowPlaying(Static):
+
+    song_info = reactive("", layout=True)
+    player_status = reactive("", layout=True)
+
+    def compose(self) -> ComposeResult:
+        yield Label("Not Playing Anything...")
+
+    def watch_song_info(self) -> None:
+        if not self.song_info:
+            return
+        self.query_one(Label).update(f"|| | {self.song_info}")
+
+
 class MainLayout(Static):
     """
     Main layout of the app
     """
 
+    BINDINGS = [
+        Binding("ctrl+c", "quit", "Quit", show=True, priority=True),
+    ]
+
     def compose(self) -> ComposeResult:
         with Container(id="main-container"):
             yield Label(splash(), expand=True)
             yield InputBox(placeholder="Type song name")
+            with NowPlaying(id="now-playing") as np:
+                np.border_title = "Now Playing"
             with Horizontal(id="interactive-container"):
                 with Vertical(classes="sub-container"):
                     yield Label("Songs", classes="sub-container-label", expand=True)
@@ -86,3 +124,7 @@ class MainLayout(Static):
                     yield Label("History", classes="sub-container-label", expand=True)
                     with ScrollableContainer():
                         yield Label("No history to display!")
+        yield Footer()
+
+    def action_quit(self):
+        self.app.exit()
