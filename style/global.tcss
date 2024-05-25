@@ -39,6 +39,19 @@ RadioButton {
     margin-bottom: 1;
 }
 
+#volume {
+    color: #808080;
+}
+
+#song {
+    text-style: bold;
+}
+
+#position {
+    color: #808080;
+}
+
+
 .hide {
     display: none;
 }

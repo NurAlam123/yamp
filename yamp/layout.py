@@ -5,15 +5,11 @@ from textual.widget import Widget
 from textual.reactive import reactive
 from textual.widgets import Input, Label, Static, RadioSet, RadioButton, Footer
 from textual.containers import Vertical, ScrollableContainer, Container, Horizontal
+from time import sleep
 
 from yamp.utils import splash
 from yamp.fetch import Fetch
 from yamp.player import Player
-
-
-# The media player
-# eventually vlc as the backend
-player = Player()
 
 
 class InputBox(Input):
@@ -36,9 +32,17 @@ class InputBox(Input):
         # song_data = Fetch().fetch_saavn(event.value)
         song_data = [
             (
+                "Kiyu Dhunde",
+                "./temp_file-ignore.wav",
+            ),
+            (
                 "Believer",
-                "https://aac.saavncdn.com/248/a6b1b78b396245f712abda8f1daefee0_96.mp4",
-            )
+                "./beliver-ignore.mp3",
+            ),
+            (
+                "Lamhey",
+                "https://aac.saavncdn.com/531/3f449bcec1c516adf33d8e2eb337407b_12.mp4",
+            ),
         ]
         menu = self.app.query_one(SelectionMenu)
         menu.data = song_data
@@ -51,19 +55,26 @@ class SelectionMenu(Widget):
     """
 
     data = reactive([], layout=True)
+    index = reactive(0, layout=True)
 
     def compose(self) -> ComposeResult:
-        yield ScrollableContainer()
+        scrollable_container = ScrollableContainer()
+        scrollable_container.can_focus = False
+        yield scrollable_container
 
     @on(RadioSet.Changed)
     def radio_button_pressed(self, event: RadioSet.Changed) -> None:
         selected_index = event.index
+        self.index = selected_index
         selected_song = self.data[selected_index]
         url = selected_song[1]
-        playing = player.play(url)
-        if not playing:
-            self.app.query_one(NowPlaying).song_info = selected_song[0]
-            # self.
+        is_playing = MainLayout.player.play_audio(url)
+        if not is_playing:
+            return
+        now_playing = self.app.query_one(NowPlaying)
+        now_playing.song_info = selected_song[0]
+        now_playing.update_timer.resume()
+        # self.
 
     def watch_data(self) -> None:
         if not self.data:
@@ -80,19 +91,41 @@ class SelectionMenu(Widget):
         container.mount(radio_menu)
         radio_menu.focus()
 
+    def watch_index(self):
+        MainLayout.player.audio_player and (
+            MainLayout.player.audio_player.is_alive()
+            and MainLayout.player.stop_thread.set()
+        )
+        sleep(0.4)
+        MainLayout.player = Player()
+
 
 class NowPlaying(Static):
 
     song_info = reactive("", layout=True)
     player_status = reactive("", layout=True)
+    current_position = reactive("", layout=True)
 
     def compose(self) -> ComposeResult:
-        yield Label("Not Playing Anything...")
+        # yield Label("Volume: 50%", id="volume")
+        yield Label("Not Playing Anything...", id="song")
+        yield Label("00:00/00:00", id="position")
+
+    def on_mount(self) -> None:
+        self.update_timer = self.set_interval(0.5, self.check_position, pause=True)
+
+    def check_position(self) -> None:
+        self.current_position = MainLayout.player.status()
 
     def watch_song_info(self) -> None:
         if not self.song_info:
             return
-        self.query_one(Label).update(f"|| | {self.song_info}")
+        self.query_one("#song", Label).update(f":pause_button: | {self.song_info}")
+
+    def watch_current_position(self):
+        if not self.current_position:
+            return
+        self.query_one("#position", Label).update(self.current_position)
 
 
 class MainLayout(Static):
@@ -102,7 +135,10 @@ class MainLayout(Static):
 
     BINDINGS = [
         Binding("ctrl+c", "quit", "Quit", show=True, priority=True),
+        Binding("ctrl+p", "toggle_play", "Play/Pause", show=True),
     ]
+
+    player = Player()
 
     def compose(self) -> ComposeResult:
         with Container(id="main-container"):
@@ -125,6 +161,12 @@ class MainLayout(Static):
                     with ScrollableContainer():
                         yield Label("No history to display!")
         yield Footer()
+
+    def action_toggle_play(self):
+        if self.player.is_playing:
+            self.player.pause()
+        elif self.player.is_paused:
+            self.player.resume()
 
     def action_quit(self):
         self.app.exit()

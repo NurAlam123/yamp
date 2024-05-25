@@ -13,8 +13,8 @@ def splash() -> str:
     return text
 
 
-def time_formatter(ms: Optional[str | int]) -> str:
-    time = ms // 1000
+def time_formatter(time: Optional[str | int]) -> str:
+    # time = ms // 1000
     sec = time % 60
     minute = time // 60
     if sec < 10:
