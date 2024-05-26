@@ -6,6 +6,7 @@ from textual.reactive import reactive
 from textual.widgets import Input, Label, Static, RadioSet, RadioButton, Footer
 from textual.containers import Vertical, ScrollableContainer, Container, Horizontal
 from time import sleep
+import math
 
 from yamp.utils import splash
 from yamp.fetch import Fetch
@@ -64,6 +65,8 @@ class SelectionMenu(Widget):
 
     @on(RadioSet.Changed)
     def radio_button_pressed(self, event: RadioSet.Changed) -> None:
+        print("PRESSED")
+        self.app.query_one(SelectionMenu).is_stopped = 0
         selected_index = event.index
         self.index = selected_index
         selected_song = self.data[selected_index]
@@ -74,11 +77,14 @@ class SelectionMenu(Widget):
         now_playing = self.app.query_one(NowPlaying)
         now_playing.song_info = selected_song[0]
         now_playing.update_timer.resume()
-        # self.
 
     def watch_data(self) -> None:
         if not self.data:
             return
+        # create selection menu
+        self.create_menu()
+
+    def create_menu(self):
         self.app.query_one("#song-container").query_one(Label).update(
             "\u2191 Up \u2193 Down\nEnter - Select\n"
         )
@@ -105,11 +111,12 @@ class NowPlaying(Static):
     song_info = reactive("", layout=True)
     player_status = reactive("", layout=True)
     current_position = reactive("", layout=True)
+    volume = reactive(0.5, layout=True)
 
     def compose(self) -> ComposeResult:
-        # yield Label("Volume: 50%", id="volume")
+        yield Label("Volume: 50%", id="volume")
         yield Label("Not Playing Anything...", id="song")
-        yield Label("00:00/00:00", id="position")
+        yield Label("00:00/00:00", id="position", classes="hide")
 
     def on_mount(self) -> None:
         self.update_timer = self.set_interval(0.5, self.check_position, pause=True)
@@ -125,7 +132,13 @@ class NowPlaying(Static):
     def watch_current_position(self):
         if not self.current_position:
             return
-        self.query_one("#position", Label).update(self.current_position)
+        position_container = self.query_one("#position", Label)
+        position_container.remove_class("hide")
+        position_container.update(self.current_position)
+
+    def watch_volume(self):
+        volume_percentage = round(self.volume * 100)
+        self.query_one("#volume", Label).update(f"Volume: {volume_percentage}%")
 
 
 class MainLayout(Static):
@@ -136,6 +149,9 @@ class MainLayout(Static):
     BINDINGS = [
         Binding("ctrl+c", "quit", "Quit", show=True, priority=True),
         Binding("ctrl+p", "toggle_play", "Play/Pause", show=True),
+        Binding("ctrl+s", "stop", "Stop", show=True),
+        Binding("ctrl+d", "vol_down", "Volume++", show=True),
+        Binding("ctrl+u", "vol_up", "Volume--", show=True),
     ]
 
     player = Player()
@@ -168,5 +184,21 @@ class MainLayout(Static):
         elif self.player.is_paused:
             self.player.resume()
 
+    def action_vol_down(self):
+        if self.player.volume <= 0.05:
+            return
+        self.player.volume -= 0.05
+        self.app.query_one(NowPlaying).volume = round(self.player.volume, 2)
+
+    def action_vol_up(self):
+        if self.player.volume > 1:
+            return
+        self.player.volume += 0.05
+        self.app.query_one(NowPlaying).volume = round(self.player.volume, 2)
+
+    def action_stop(self):
+        self.player.stop()
+
     def action_quit(self):
+        self.player.stop()
         self.app.exit()

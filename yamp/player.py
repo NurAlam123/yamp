@@ -1,23 +1,13 @@
-# from vlc import MediaPlayer, Media
-
 import requests
 from io import BytesIO
-
 from pydub import AudioSegment
-
-from simpleaudio import PlayObject, play_buffer
-
-
 from threading import Thread, Event
 from time import sleep
-
-from yamp.utils import time_formatter
-
-
 import numpy as np
 import sounddevice as sd
-
 import math
+
+from yamp.utils import time_formatter
 
 
 class Player:
@@ -30,7 +20,6 @@ class Player:
 
         self.is_playing = False
         self.is_paused = False
-        self.is_stopped = False
         self.stop_thread: Event = Event()
 
         self.current_frame_position = 0
@@ -39,17 +28,19 @@ class Player:
 
         self.sleep_time = 0.5
 
+        self.volume = 0.5
+
     def reset(self):
         self.__init__()
 
     def play_audio(self, url: str) -> None:
         self.reset()
 
-        res = requests.get(url)
-        self.audio = music_file = BytesIO(res.content)
-        self.audio_segment = AudioSegment.from_file(music_file)
-        # self.audio = url
-        # self.audio_segment = AudioSegment.from_file(url)
+        # res = requests.get(url)
+        # self.audio = music_file = BytesIO(res.content)
+        # self.audio_segment = AudioSegment.from_file(music_file)
+        self.audio = url
+        self.audio_segment = AudioSegment.from_file(url)[50000:]
         self.total_duration = math.floor(self.audio_segment.duration_seconds)
 
         self.audio_player = Thread(target=self._play, daemon=True)
@@ -63,16 +54,19 @@ class Player:
         audio_data = np.array(self.audio_segment.get_array_of_samples())
         sample_rate = self.audio_segment.frame_rate
         channels = self.audio_segment.channels
-        print(self.audio_segment.duration_seconds, sample_rate, channels)
 
         def callback(out_data: np.ndarray, frames: int, time, status):
-            if self.is_stopped:
+            if self.stop_thread.is_set():
                 # slow down the pause so that doesn't make unexpected sound
                 sleep(self.sleep_time)
                 return
             start = self.current_frame_position
             end = start + frames * channels
-            out_data[:] = audio_data[start:end].reshape(out_data.shape)
+            out_data[:] = (
+                (audio_data[start:end] * self.volume)
+                .astype(np.int16)
+                .reshape(out_data.shape)
+            )
             self.current_frame_position = end
 
         with sd.OutputStream(
@@ -81,7 +75,6 @@ class Player:
             while self.is_playing and not self.stop_thread.is_set():
                 self.current_position += self.sleep_time
                 if self.current_position >= self.total_duration:
-                    self.is_stopped = True
                     self.stop_thread.set()
                     break
                 sleep(self.sleep_time)
@@ -91,7 +84,6 @@ class Player:
         if self.audio_player:
             if self.audio_player.is_alive():
                 self.stop_thread.set()
-                self.is_stopped = True
         self.is_paused = True
         self.is_playing = False
         return 1
@@ -103,12 +95,18 @@ class Player:
         # again start the player
         self.audio_player = Thread(target=self._play, daemon=True)
         self.stop_thread.clear()
-        self.is_stopped = False
         self.is_paused = False
         self.is_playing = True
         self.current_frame_position = 0
         self.audio_player.start()
         return 1
+
+    def stop(self) -> int:
+        if not self.stop_thread.is_set():
+            self.stop_thread.set()
+
+        self.stop_thread.clear()
+        self.__init__()
 
     def status(self) -> str:
         if not self.is_playing and not self.is_paused:
