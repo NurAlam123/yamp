@@ -7,12 +7,15 @@ from yamp.layout import MainLayout
 
 class YAMP(App[None]):
     CSS_PATH = "./style/global.tcss"
-    
 
     def compose(self) -> ComposeResult:
         yield MainLayout()
 
 
-if __name__ == "__main__":
+def run():
     app = YAMP()
     app.run()
+
+
+if __name__ == "__main__":
+    run()

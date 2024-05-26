@@ -54,7 +54,7 @@ class SelectionMenu(Widget):
         selected_index = event.index
         self.index = selected_index
         selected_song = self.data[selected_index]
-        url = selected_song[1]
+        url = selected_song[1]["url"]
         is_playing = MainLayout.player.play_audio(url)
         if not is_playing:
             return
@@ -109,9 +109,11 @@ class NowPlaying(Static):
         self.current_position = MainLayout.player.status()
 
     def watch_song_info(self) -> None:
+        status_icon = {"play": ":pause_button:", "pause": ":play_button:"}
+        value = f"{status_icon[self.player_status]} | {self.song_info}"
         if not self.song_info:
-            return
-        self.query_one("#song", Label).update(f":pause_button: | {self.song_info}")
+            f"Not Playing Anything..."
+        self.query_one("#song", Label).update(value)
 
     def watch_current_position(self) -> None:
         if not self.current_position:
@@ -167,8 +169,10 @@ class MainLayout(Static):
     def action_toggle_play(self) -> None:
         if self.player.is_playing:
             self.player.pause()
+            self.query_one(NowPlaying).player_status = "pause"
         elif self.player.is_paused:
             self.player.resume()
+            self.query_one(NowPlaying).player_status = "play"
 
     def action_vol_down(self) -> None:
         if self.player.volume <= 0.05:
@@ -196,4 +200,5 @@ class MainLayout(Static):
 
     def action_quit(self) -> None:
         self.player.stop()
+        self.player.remove_temp()
         self.app.exit()

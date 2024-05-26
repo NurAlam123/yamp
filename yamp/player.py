@@ -5,6 +5,7 @@ from threading import Thread, Event
 from time import sleep
 import numpy as np
 import sounddevice as sd
+import os
 import math
 
 from yamp.utils import time_formatter
@@ -20,6 +21,8 @@ class Player:
 
         self.is_playing = False
         self.is_paused = False
+        self.is_loop = False
+        self.is_remove = False
         self.stop_thread: Event = Event()
 
         self.current_frame_position = 0
@@ -30,17 +33,32 @@ class Player:
 
         self.volume = 0.5
 
+        # temp music file
+        self.temp_folder = "__temp__"
+        self.temp_file = "_temp_music_"
+        self.file_extension = ".mp3"
+        self.file_name = f"{self.temp_file}{self.file_extension}"
+        self.full_path = os.path.join(self.temp_folder, self.file_name)
+        if not os.path.exists(self.temp_folder):
+            os.mkdir(self.temp_folder)
+
     def reset(self):
         self.__init__()
+        self.remove_temp()
 
     def play_audio(self, url: str) -> None:
         self.reset()
 
-        # res = requests.get(url)
-        # self.audio = music_file = BytesIO(res.content)
-        # self.audio_segment = AudioSegment.from_file(music_file)
-        self.audio = url
-        self.audio_segment = AudioSegment.from_file(url)[50000:]
+        res = requests.get(url)
+        with open(self.full_path, "wb") as f:
+            f.write(res.content)
+            f.close()
+
+        self.audio = self.full_path
+
+        self.audio_segment = AudioSegment.from_file(self.audio)
+        # self.audio = url
+        # self.audio_segment = AudioSegment.from_file(url)[50000:]
         self.total_duration = math.floor(self.audio_segment.duration_seconds)
 
         self.audio_player = Thread(target=self._play, daemon=True)
@@ -57,6 +75,8 @@ class Player:
 
         def callback(out_data: np.ndarray, frames: int, time, status):
             if self.stop_thread.is_set():
+                if self.is_remove:
+                    self.remove_temp()
                 # slow down the pause so that doesn't make unexpected sound
                 sleep(self.sleep_time)
                 return
@@ -74,8 +94,9 @@ class Player:
         ):
             while self.is_playing and not self.stop_thread.is_set():
                 self.current_position += self.sleep_time
-                if self.current_position >= self.total_duration:
+                if self.current_position >= self.total_duration and not self.is_loop:
                     self.stop_thread.set()
+                    self.is_remove = True
                     break
                 sleep(self.sleep_time)
 
@@ -107,6 +128,11 @@ class Player:
 
         self.stop_thread.clear()
         self.__init__()
+        self.remove_temp()
+
+    def remove_temp(self):
+        if os.path.exists(self.full_path):
+            os.remove(self.full_path)
 
     def status(self) -> str:
         if not self.is_playing and not self.is_paused:

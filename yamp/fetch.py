@@ -20,7 +20,7 @@ class Fetch:
         results = res_data["data"]["results"]
         # Append songs info such as stream url, song name and artist name - in the songs list
         for result in results:
-            stream_url = result["downloadUrl"][-2]
+            stream_url = result["downloadUrl"][1]
             song_name = result["name"]
             song_artist = result["artists"]["primary"][0]["name"]
             title = f"{song_artist} - {song_name}"
