@@ -28,6 +28,7 @@
 
 ScrollableContainer {
     height: 100%;
+    width: 100%;
 }
 
 RadioSet {
@@ -37,6 +38,7 @@ RadioSet {
 
 RadioButton {
     margin-bottom: 1;
+    height: 2;
 }
 
 #volume {

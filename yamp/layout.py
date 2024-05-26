@@ -6,7 +6,6 @@ from textual.reactive import reactive
 from textual.widgets import Input, Label, Static, RadioSet, RadioButton, Footer
 from textual.containers import Vertical, ScrollableContainer, Container, Horizontal
 from time import sleep
-import math
 
 from yamp.utils import splash
 from yamp.fetch import Fetch
@@ -30,21 +29,7 @@ class InputBox(Input):
             return
 
         event.control.clear()
-        # song_data = Fetch().fetch_saavn(event.value)
-        song_data = [
-            (
-                "Kiyu Dhunde",
-                "./temp_file-ignore.wav",
-            ),
-            (
-                "Believer",
-                "./beliver-ignore.mp3",
-            ),
-            (
-                "Lamhey",
-                "https://aac.saavncdn.com/531/3f449bcec1c516adf33d8e2eb337407b_12.mp4",
-            ),
-        ]
+        song_data = Fetch().fetch_saavn(event.value)
         menu = self.app.query_one(SelectionMenu)
         menu.data = song_data
 
@@ -65,7 +50,6 @@ class SelectionMenu(Widget):
 
     @on(RadioSet.Changed)
     def radio_button_pressed(self, event: RadioSet.Changed) -> None:
-        print("PRESSED")
         self.app.query_one(SelectionMenu).is_stopped = 0
         selected_index = event.index
         self.index = selected_index
@@ -84,7 +68,7 @@ class SelectionMenu(Widget):
         # create selection menu
         self.create_menu()
 
-    def create_menu(self):
+    def create_menu(self) -> None:
         self.app.query_one("#song-container").query_one(Label).update(
             "\u2191 Up \u2193 Down\nEnter - Select\n"
         )
@@ -97,7 +81,7 @@ class SelectionMenu(Widget):
         container.mount(radio_menu)
         radio_menu.focus()
 
-    def watch_index(self):
+    def watch_index(self) -> None:
         MainLayout.player.audio_player and (
             MainLayout.player.audio_player.is_alive()
             and MainLayout.player.stop_thread.set()
@@ -129,14 +113,14 @@ class NowPlaying(Static):
             return
         self.query_one("#song", Label).update(f":pause_button: | {self.song_info}")
 
-    def watch_current_position(self):
+    def watch_current_position(self) -> None:
         if not self.current_position:
             return
         position_container = self.query_one("#position", Label)
         position_container.remove_class("hide")
         position_container.update(self.current_position)
 
-    def watch_volume(self):
+    def watch_volume(self) -> None:
         volume_percentage = round(self.volume * 100)
         self.query_one("#volume", Label).update(f"Volume: {volume_percentage}%")
 
@@ -150,11 +134,13 @@ class MainLayout(Static):
         Binding("ctrl+c", "quit", "Quit", show=True, priority=True),
         Binding("ctrl+p", "toggle_play", "Play/Pause", show=True),
         Binding("ctrl+s", "stop", "Stop", show=True),
-        Binding("ctrl+d", "vol_down", "Volume++", show=True),
-        Binding("ctrl+u", "vol_up", "Volume--", show=True),
+        Binding("-", "vol_down", "Volume--", show=True),
+        Binding("=", "vol_up", "Volume++", show=True),
+        Binding("m", "mute", "Mute", show=True),
     ]
 
     player = Player()
+    prev_volume = player.volume
 
     def compose(self) -> ComposeResult:
         with Container(id="main-container"):
@@ -178,27 +164,36 @@ class MainLayout(Static):
                         yield Label("No history to display!")
         yield Footer()
 
-    def action_toggle_play(self):
+    def action_toggle_play(self) -> None:
         if self.player.is_playing:
             self.player.pause()
         elif self.player.is_paused:
             self.player.resume()
 
-    def action_vol_down(self):
+    def action_vol_down(self) -> None:
         if self.player.volume <= 0.05:
             return
         self.player.volume -= 0.05
         self.app.query_one(NowPlaying).volume = round(self.player.volume, 2)
 
-    def action_vol_up(self):
+    def action_vol_up(self) -> None:
         if self.player.volume > 1:
             return
         self.player.volume += 0.05
         self.app.query_one(NowPlaying).volume = round(self.player.volume, 2)
 
-    def action_stop(self):
+    def action_mute(self) -> None:
+        if self.player.volume > 0:
+            self.prev_volume = self.player.volume
+            self.player.volume = 0
+            self.app.query_one(NowPlaying).volume = round(self.player.volume, 2)
+        elif self.player.volume <= 0:
+            self.player.volume = self.prev_volume
+            self.app.query_one(NowPlaying).volume = round(self.player.volume, 2)
+
+    def action_stop(self) -> None:
         self.player.stop()
 
-    def action_quit(self):
+    def action_quit(self) -> None:
         self.player.stop()
         self.app.exit()
