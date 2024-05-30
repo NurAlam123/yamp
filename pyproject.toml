@@ -1,9 +1,11 @@
 [tool.poetry]
-name = "yamp"
+name = "yamp_py"
 version = "0.1.0"
 description = ""
-authors = ["Your Name <you@example.com>"]
+authors = ["Nur Alam <nuralam.rsc@gmail.com>"]
 readme = "README.md"
+license = "MIT"
+repository = "https://github.com/NurAlam123/yamp"
 include = ["./style/*", "main.py"]
 
 [tool.poetry.dependencies]

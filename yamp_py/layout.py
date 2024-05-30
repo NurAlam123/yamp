@@ -7,9 +7,9 @@ from textual.widgets import Input, Label, Static, RadioSet, RadioButton, Footer
 from textual.containers import Vertical, ScrollableContainer, Container, Horizontal
 from time import sleep
 
-from yamp.utils import splash
-from yamp.fetch import Fetch
-from yamp.player import Player
+from yamp_py.utils import splash
+from yamp_py.fetch import Fetch
+from yamp_py.player import Player
 
 
 class InputBox(Input):

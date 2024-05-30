@@ -8,7 +8,7 @@ import sounddevice as sd
 import os
 import math
 
-from yamp.utils import time_formatter
+from yamp_py.utils import time_formatter
 
 
 class Player:

@@ -20,3 +20,6 @@ __pycache__
 
 # ignore temporary files and folder
 __temp__
+
+dist/
+dist/*
