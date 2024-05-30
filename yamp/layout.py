@@ -109,10 +109,10 @@ class NowPlaying(Static):
         self.current_position = MainLayout.player.status()
 
     def watch_song_info(self) -> None:
-        status_icon = {"play": ":pause_button:", "pause": ":play_button:"}
+        status_icon = {"": "", "play": ":pause_button:", "pause": ":play_button:"}
         value = f"{status_icon[self.player_status]} | {self.song_info}"
         if not self.song_info:
-            f"Not Playing Anything..."
+            value = "Not Playing Anything..."
         self.query_one("#song", Label).update(value)
 
     def watch_current_position(self) -> None:

@@ -17,3 +17,6 @@ env-*
 # ignore __pycache__
 **/__pycache__
 __pycache__
+
+# ignore temporary files and folder
+__temp__
